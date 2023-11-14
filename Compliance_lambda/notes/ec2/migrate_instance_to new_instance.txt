@@ -1,0 +1,59 @@
+import boto3
+import json
+
+
+
+def migrate_to_better_instance(self, instance_id, new_instance_type):
+    # Wait for the instance to stop
+    waiter = self._ec2.get_waiter('instance_stopped')
+    waiter.wait(InstanceIds=[instance_id])
+
+    # Modify the instance type
+    self._ec2.modify_instance_attribute(InstanceId=instance_id, Attribute='instanceType', Value=new_instance_type)
+
+    # Start the new instance
+    self._ec2.start_instances(InstanceIds=[instance_id])
+
+    # Wait for the instance to start
+    waiter = self._ec2.get_waiter('instance_running')
+    waiter.wait(InstanceIds=[instance_id])
+
+    print(f"Successfully migrated instance {instance_id} to {new_instance_type}")
+
+
+class Ec2:
+    def __init__(self):
+        # Connect to the EC2 client
+        self._ec2 = boto3.client('ec2')
+        self.cloudtrail_client = boto3.client('cloudtrail')
+
+        self.instance_large_family = ['t3.large']
+        self.instance_small_family = ['t3.micro']
+
+    def lambda_handler(self, event, context):
+        # Get the instance ID from the CloudWatch alarm notification
+        instance_id = event['Trigger']['Dimensions'][0]['value']
+        self.cloudwatch_monitor(event, context)
+
+    def cloudwatch_monitor(self, event, context):
+        instance_type = "t2.medium"
+        # Extract the instance ID from the CloudWatch event
+        instance_id = event['detail']['dimensions'][0]['value']
+
+        # Print the instance ID for testing purposes
+        print(f"Instance ID: {instance_id}")
+
+        # Call the migrate_to_better_instance function with the instance ID and new instance type
+        migrate_to_better_instance(self, instance_id, instance_type)
+
+        # Return a success message
+        return {
+            'statusCode': 200,
+            'body': json.dumps(f'Successfully migrated instance {instance_id} to {instance_type} instance type.')
+        }
+
+
+at the creation of EC2 clouwatch events are send to lambda, using lambda python how do write this, if it is possible:
+Network performance: You can monitor the network performance of your EC2 instances to ensure that they have enough network
+ bandwidth to handle the workload. If an instance is experiencing network congestion, you can either increase the network
+ bandwidth or migrate the workload to an instance type with better network performance

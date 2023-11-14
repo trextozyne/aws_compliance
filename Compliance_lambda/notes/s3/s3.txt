@@ -1,0 +1,52 @@
+
+        try:
+            bucket_name = event['detail']['requestParameters']['bucketName']
+        except Exception as e:
+            print(f'Error: This is function exited because its not an s3 event')
+=============================================================================
+def check_compliance_tag(self, bucket_name):
+        try:
+            s3_client = boto3.client('s3')
+
+            # Get a list of all buckets
+            buckets = s3_client.list_buckets()['Buckets']
+
+            # Loop through all buckets and check for the compliance tag
+            for bucket in buckets:
+                bucket_name = bucket['Name']
+                compliance_tag = s3_client.get_bucket_tagging(Bucket=bucket_name).get('TagSet', [])
+                if any(tag.get('Key') == 'compliance' and tag.get('Value') == 'no' for tag in compliance_tag):
+                    # Exit out of function
+                    sys.exit()
+=============================================================================
+
+    def check_compliance_tag(self, bucket_name):
+        try:
+            # Check for the compliance tag for the specified bucket
+            compliance_tag = self.s3_client.get_bucket_tagging(Bucket=bucket_name).get('TagSet', [])
+            if any(tag.get('Key') == 'compliance' and tag.get('Value') == 'no' for tag in compliance_tag):
+                # Exit out of function
+                sys.exit()
+        except Exception as e:
+            # Handle any exceptions that occur while checking the compliance tag
+            print(f"Error checking compliance tag for bucket '{bucket_name}': {e}")
+=====================================================
+# setting the access control list (ACL) of an Amazon S3 bucket to private means that only the
+owner of the bucket (or users with specific permissions granted by the owner) can access the
+contents of the bucket.
+        try:
+            # Get the bucket policy status
+            response = self.s3_client.get_bucket_policy_status(Bucket=bucket_name)
+            is_public = response['PolicyStatus']['IsPublic']
+
+            # Check if the bucket policy allows public access
+            if not is_public:
+                print(f'Bucket {bucket_name} is compliant')
+            else:
+                # Make the bucket private by revoking public access
+                self.s3_client.put_bucket_acl(Bucket=bucket_name, ACL='private')
+                print(f'Revoked public access for bucket {bucket_name}')
+        except self.s3_client.exceptions.NoSuchBucketPolicy:
+            print(f'Bucket {bucket_name} does not have a bucket policy')
+        except Exception as e:
+            print(f'Error: {e}')========================

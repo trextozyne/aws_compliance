@@ -1,0 +1,73 @@
+provider "aws" {
+  region = "us-east-2"
+}
+
+//lambda function handler & code file
+resource "aws_lambda_function" "lambda-function" {
+  function_name = "Function01"
+  handler = "com.rafael.lambda.Function01"
+  role = "arn:aws:iam::12345:role/LambdaRoleTest"
+  runtime = "java8"
+  s3_bucket = aws_s3_bucket.sns-test.id
+  s3_key = aws_s3_bucket_object.file_upload.id
+  source_code_hash = filebase64sha256("../target/sns-cw-lambda-poc.jar")
+}
+
+//allow sns to call lambda
+resource "aws_lambda_permission" "allow-sns-to-lambda" {
+  function_name = aws_lambda_function.lambda-function.function_name
+  action = "lambda:InvokeFunction"
+  principal = "sns.amazonaws.com"
+  source_arn = aws_sns_topic.call-lambdas-topic.arn
+  statement_id = "AllowExecutionFromSNS"
+}
+
+//app s3 repository
+resource "aws_s3_bucket" "sns-test" {
+  bucket = "app-bucket-12345"
+  region = "us-east-2"
+}
+
+//app jar file
+resource "aws_s3_bucket_object" "file_upload" {
+  depends_on = [
+    aws_s3_bucket.sns-test
+  ]
+  bucket = aws_s3_bucket.sns-test.id
+  key = "sns-cw-lambda-poc.jar"
+  source = "../target/sns-cw-lambda-poc.jar"
+  server_side_encryption = "AES256"
+  etag = filebase64sha256("../target/sns-cw-lambda-poc.jar")
+}
+
+//to check lambda exec logs
+resource "aws_cloudwatch_log_group" "lambda-cloudwatch-logs" {
+  name = "/aws/lambda/${aws_lambda_function.lambda-function.function_name}"
+}
+
+//rule to trigger SNS
+resource "aws_cloudwatch_event_rule" "publish-sns-rule" {
+  name = "publish-sns-rule"
+  schedule_expression = "rate(1 minute)"
+}
+
+//cloud watch event targets SNS
+resource "aws_cloudwatch_event_target" "sns-publish" {
+  count = "1"
+  rule = aws_cloudwatch_event_rule.publish-sns-rule.name
+  target_id = aws_sns_topic.call-lambdas-topic.name
+  arn = aws_sns_topic.call-lambdas-topic.arn
+}
+
+//SNS topic to subscribe
+resource "aws_sns_topic" "call-lambdas-topic" {
+  name = "call-lambdas-topic"
+}
+
+//lambda subscribes the topic, so it should be nofied when other resource publishes to the topic
+resource "aws_sns_topic_subscription" "sns-lambda-subscritption" {
+  topic_arn = aws_sns_topic.call-lambdas-topic.arn
+  protocol = "lambda"
+  endpoint = aws_lambda_function.lambda-function.arn
+}
+aws-lambdaterraformamazon-snsamazon-cloudwatch

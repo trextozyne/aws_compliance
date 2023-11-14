@@ -1,0 +1,39 @@
+event_pattern = jsonencode({
+        "source": ["aws.ec2", "aws.s3", "aws.iam", "aws.lambda", "aws.rds", "aws.dynamodb"],
+        "detail-type": ["AWS API Call via CloudTrail",
+                        "EC2 Instance Launch Successful"],
+        "detail": {
+            "eventSource": ["ec2.amazonaws.com", "s3.amazonaws.com", "iam.amazonaws.com", "lambda.amazonaws.com", "rds.amazonaws.com", "dynamodb.amazonaws.com"],
+            "eventName": ["Create*", "Put*", "Delete*", "Update*", "Modify*"],
+            "userIdentity": {
+                "type": ["AssumedRole"],
+            }
+        }
+    })
+
+     event_pattern = jsonencode({
+            "source": [
+                "aws.ec2",
+                "aws.s3"
+            ],
+            "detail-type": [
+                "AWS API Call via CloudTrail",
+                "EC2 Instance Launch Successful"
+            ],
+            "detail": {
+                "eventSource": [
+                    "ec2.amazonaws.com",
+                    "s3.amazonaws.com"
+                ],
+                "eventName": [
+                    "RunInstances",
+                    "CreateBucket",
+                    "PutObject"
+                ],
+                "userIdentity": {
+                    "type": [
+                        "AssumedRole"
+                    ]
+                }
+            }
+        })
